@@ -18,16 +18,18 @@ function UpdateAllGitRepos {
         [string] $ActionParams = $null,
         [string] $CompletionAction = $null,
         [string] $CompletionActionParams = $null,
-        [string] $IncludeBranches = $null,
+        [string] $IncludeBranches = $null,        
+        [switch] $ScanSubdirectories = $false,
         [switch] $ShowBranchName = $false,
-        [switch] $Version = $false
+        [switch] $Version = $false,
+        [switch] $MuteFinalMessage = $false
     )
 
     if ($Version) {
-        "1.3.0"
+        "1.4.0"
         return;
     }
-
+    
     $textColor = "DarkYellow"
     $gitTextColor = "DarkGray"
     $successTextColor = "Green"
@@ -40,7 +42,7 @@ function UpdateAllGitRepos {
 
     $folders = Get-ChildItem -Path $Path -Directory
     $startLocation = Get-Location
-
+ 
     foreach ($currentFolder in $folders) {
         $hasGit = (Get-ChildItem -Force -Directory $currentFolder -Filter ".git").Count -gt 0
 
@@ -76,7 +78,7 @@ function UpdateAllGitRepos {
             # Executing operation on every branch in the list...
             foreach ($branchName in $branches) {
                 $currentBranchName = git symbolic-ref --short HEAD
-                
+
                 if ($branchName -ne $currentBranchName) {
                     Write-Host "Switching to branch: $branchName" -ForegroundColor $textColor
                     git switch $branchName --quiet
@@ -107,10 +109,31 @@ function UpdateAllGitRepos {
 
             ""
         }
+        elseif ($ScanSubdirectories -eq $true) {
+            $subPath = $Path + "\" + $currentFolder.Name
+
+            UpdateAllGitRepos `
+                -Path $subPath `
+                -PreparationAction $PreparationAction `
+                -PreparationActionParams $PreparationActionParams `
+                -Action $Action `
+                -ActionParams $ActionParams `
+                -CompletionAction $CompletionAction `
+                -CompletionActionParams $CompletionActionParams `
+                -IncludeBranches $IncludeBranches `
+                -ScanSubdirectories:$ScanSubdirectories `
+                -ShowBranchName:$ShowBranchName  `
+                -Version:$Version `
+                -MuteFinalMessage:$true
+        }
     }
 
     Set-Location $startLocation
-    Write-Host "Operation completed." -ForegroundColor $successTextColor
+
+    if ($MuteFinalMessage -eq $false) {
+        Write-Host "Operation completed." -ForegroundColor $successTextColor
+    }
+
     $Host.UI.RawUI.ForegroundColor = $originalTextColor;
 }
 
@@ -140,9 +163,9 @@ function Write-Help {
     "`t -Path - specifies the folder to search for repositories. Current folder will be used if this parameter is not specified."
 
     if ($EnableIncludeBranches) {
-        "`t -IncludeBranches - specifies comma separated list of branches to update. This option will be ignored if currently selected branch have uncommitted changes."
+        "`t -IncludeBranches - specifies comma separated list of branches to update. This option will be ignored if currently selected branch have uncommitted changes."  
     }
-
+    "`t -ScanSubdirectories - scans all subdirectories for additional git repositories if set to true."      
     "`t -Params - specifies any additional GIT parameters to execute. E.g. '-Params --prune'."
     
     if ($HelpUrl -ne $null) {
@@ -157,7 +180,8 @@ function Write-Help {
 function Fetch-GitRepos {
     param (
         [string] $Path = $null,
-        [string] $Params = $null,
+        [string] $Params = $null, 
+        [switch] $ScanSubdirectories = $false,
         [switch] $Help = $false,
         [switch] $Version = $false
     )
@@ -175,7 +199,11 @@ function Fetch-GitRepos {
     if (!$Path) { $Path = Get-Location }
     Write-Host "Fetching all GIT repositories in folder $Path" -ForegroundColor Green
     ""
-    UpdateAllGitRepos -Path $Path -ActionParams fetch -Params $Params
+    UpdateAllGitRepos `
+        -Path $Path `
+        -ActionParams fetch `
+        -Params $Params `
+        -ScanSubdirectories $ScanSubdirectories
 }
 
 # Pulls all git repositories.
@@ -184,6 +212,7 @@ function Pull-GitRepos {
         [string] $Path = $null,
         [string] $IncludeBranches = $null,
         [string] $Params = $null,
+        [switch] $ScanSubdirectories = $false,
         [switch] $Help = $false,
         [switch] $Version = $false
     )
@@ -201,7 +230,13 @@ function Pull-GitRepos {
     if (!$Path) { $Path = Get-Location }
     Write-Host "Pulling all GIT repositories in folder $Path" -ForegroundColor Green
     ""
-    UpdateAllGitRepos -Path $Path -PreparationAction fetch -PreparationActionParams $Params -Action merge -IncludeBranches $IncludeBranches -ShowBranchName
+    UpdateAllGitRepos -Path $Path `
+        -PreparationAction fetch `
+        -PreparationActionParams $Params `
+        -Action merge `
+        -IncludeBranches $IncludeBranches `
+        -ShowBranchName `
+        -ScanSubdirectories $ScanSubdirectories
 }
 
 # Optimizes (git gc) all git repositories.
@@ -209,6 +244,7 @@ function Optimize-GitRepos {
     param (
         [string] $Path = $null,
         [string] $Params = $null,
+        [switch] $ScanSubdirectories = $false,
         [switch] $Help = $false,
         [switch] $Version = $false
     )
@@ -226,7 +262,12 @@ function Optimize-GitRepos {
     if (!$Path) { $Path = Get-Location }
     Write-Host "Optimizing all GIT repositories in folder $Path" -ForegroundColor Green
     ""
-    UpdateAllGitRepos -Path $Path -Action gc -ActionParams $Params -IncludeBranches $IncludeBranches
+    UpdateAllGitRepos `
+        -Path:$Path `
+        -Action 'gc' `
+        -ActionParams:$Params `
+        -IncludeBranches:$IncludeBranches `
+        -ScanSubdirectories:$ScanSubdirectories
 }
 
 Export-ModuleMember -Function Fetch-GitRepos
