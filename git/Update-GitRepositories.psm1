@@ -113,14 +113,14 @@ function UpdateAllGitRepos {
             $subPath = $Path + "\" + $currentFolder.Name
 
             UpdateAllGitRepos `
-                -Path $subPath `
-                -PreparationAction $PreparationAction `
-                -PreparationActionParams $PreparationActionParams `
-                -Action $Action `
-                -ActionParams $ActionParams `
-                -CompletionAction $CompletionAction `
-                -CompletionActionParams $CompletionActionParams `
-                -IncludeBranches $IncludeBranches `
+                -Path:$subPath `
+                -PreparationAction:$PreparationAction `
+                -PreparationActionParams:$PreparationActionParams `
+                -Action:$Action `
+                -ActionParams:$ActionParams `
+                -CompletionAction:$CompletionAction `
+                -CompletionActionParams:$CompletionActionParams `
+                -IncludeBranches:$IncludeBranches `
                 -ScanSubdirectories:$ScanSubdirectories `
                 -ShowBranchName:$ShowBranchName  `
                 -Version:$Version `
@@ -200,10 +200,10 @@ function Fetch-GitRepos {
     Write-Host "Fetching all GIT repositories in folder $Path" -ForegroundColor Green
     ""
     UpdateAllGitRepos `
-        -Path $Path `
+        -Path:$Path `
         -ActionParams fetch `
-        -Params $Params `
-        -ScanSubdirectories $ScanSubdirectories
+        -Params:$Params `
+        -ScanSubdirectories:$ScanSubdirectories
 }
 
 # Pulls all git repositories.
@@ -230,13 +230,13 @@ function Pull-GitRepos {
     if (!$Path) { $Path = Get-Location }
     Write-Host "Pulling all GIT repositories in folder $Path" -ForegroundColor Green
     ""
-    UpdateAllGitRepos -Path $Path `
+    UpdateAllGitRepos -Path:$Path `
         -PreparationAction fetch `
-        -PreparationActionParams $Params `
+        -PreparationActionParams:$Params `
         -Action merge `
-        -IncludeBranches $IncludeBranches `
+        -IncludeBranches:$IncludeBranches `
         -ShowBranchName `
-        -ScanSubdirectories $ScanSubdirectories
+        -ScanSubdirectories:$ScanSubdirectories
 }
 
 # Optimizes (git gc) all git repositories.
